@@ -1,0 +1,167 @@
+# KYC Kafka FastAPI Project
+
+This project demonstrates a **KYC workflow** powered by **FastAPI** and **Apache Kafka**.
+
+## Components
+
+- **FastAPI producer (`main.py`)** → Sends KYC payloads to different Kafka topics with topic management endpoints
+- **Kafka consumer (`kyc_listener.py`)** → Listens to multiple topics and prints messages in real-time
+
+## Prerequisites
+
+- Python 3.8+
+- Apache Kafka running locally on port 9092 (default port)
+- Topics can be created dynamically by hitting the FastAPI endpoint (no manual pre-creation required)
+
+## Setup
+
+### 1. Environment Setup
+
+```bash
+# Clone the repository
+git clone <your-repo-url>
+cd <your-repo-folder>
+
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+# For Mac/Linux users:
+source .venv/bin/activate
+
+# For Windows PowerShell:
+.venv\Scripts\Activate.ps1
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### 2. Start Kafka
+
+Make sure Kafka is running locally on port 9092 (default port).
+
+## Usage
+
+### 1. Run FastAPI
+
+```bash
+uvicorn main:app --reload
+```
+
+The API will be available at:
+👉 **http://127.0.0.1:8000/docs** (interactive Swagger UI)
+
+### 2. API Endpoints
+
+#### Submit KYC Documents
+
+**POST** `/submit-kyc`
+
+Submit KYC payloads to different topics using the `topic_type` query parameter:
+
+- `submission` → `kyc-submissions` topic
+- `verification` → `kyc-verification` topic  
+- `alert` → `kyc-alerts` topic
+
+##### Examples:
+
+```bash
+# Create kyc-submissions topic
+curl -X POST "http://127.0.0.1:8000/submit-kyc?topic_type=submission" \
+-H "Content-Type: application/json" \
+-d '{
+  "customer_id": "C123",
+  "document_type": "passport",
+  "document_number": "A1234567",
+  "country": "US"
+}'
+
+# Create kyc-verification topic
+curl -X POST "http://127.0.0.1:8000/submit-kyc?topic_type=verification" \
+-H "Content-Type: application/json" \
+-d '{
+  "customer_id": "C456",
+  "document_type": "id_card",
+  "document_number": "B9876543",
+  "country": "UK"
+}'
+
+# Create kyc-alerts topic
+curl -X POST "http://127.0.0.1:8000/submit-kyc?topic_type=alert" \
+-H "Content-Type: application/json" \
+-d '{
+  "customer_id": "C789",
+  "document_type": "alert",
+  "document_number": "N/A",
+  "country": "CA"
+}'
+```
+
+#### List Topics
+
+**GET** `/list-topics`
+
+List all available Kafka topics:
+
+```bash
+curl -X GET "http://127.0.0.1:8000/list-topics"
+```
+
+Response:
+```json
+{
+  "topics": ["kyc-submissions", "kyc-verification", "kyc-alerts", "__consumer_offsets"]
+}
+```
+
+#### Delete Topic
+
+**DELETE** `/delete-topic`
+
+Delete a specific Kafka topic:
+
+```bash
+curl -X DELETE "http://127.0.0.1:8000/delete-topic?topic_name=kyc-submissions"
+```
+
+### 3. Run the Consumer
+
+Run the listener to consume messages from all KYC topics:
+
+```bash
+python kyc_listener.py
+```
+
+Expected output:
+```
+Listening to Kafka topics: ['kyc-submissions', 'kyc-verification', 'kyc-alerts']...
+[kyc-submissions] Key: C123 | Value: {...}
+[kyc-verification] Key: C456 | Value: {...}
+[kyc-alerts] Key: C789 | Value: {...}
+```
+
+## Workflow Summary
+
+1. Start Kafka broker
+2. Run FastAPI (`uvicorn main:app --reload`)
+3. Submit KYC payloads with `/submit-kyc?topic_type=<type>`
+4. List topics with `/list-topics` to verify topic creation
+5. Run the consumer (`kyc_listener.py`) to watch messages in real-time
+6. Use `/delete-topic` to clean up topics when needed
+
+## Project Structure
+
+```
+├── main.py              # FastAPI producer with topic management
+├── kyc_listener.py      # Kafka consumer for all KYC topics
+├── requirements.txt     # Python dependencies
+└── README.md           # Project documentation
+```
+
+## Topic Mapping
+
+| topic_type | Kafka Topic |
+|------------|-------------|
+| `submission` | `kyc-submissions` |
+| `verification` | `kyc-verification` |
+| `alert` | `kyc-alerts` |
