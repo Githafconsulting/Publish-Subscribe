@@ -23,6 +23,7 @@ if __name__ == "__main__":
         "kyc.document.uploaded",
         "kyc.document.ocr_processed",
         "kyc.document.ocr_request",
-        "kyc.customer.verified"
+        "kyc.customer.verified",
+        "kyc.document.ocr_result"
     ]
     create_topics(topics)
